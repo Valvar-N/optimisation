@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 from tsp import TSP
 from simulated_annealing import SimulatedAnnealing
 import time
+from knapsack import Knapsack
 
 def plot_tours(cities, initial_tour, best_tour, initial_dist, best_dist):
     plt.figure(figsize=(12, 6))
@@ -52,8 +53,14 @@ if __name__ == "__main__":
     ]
     tsp_problem = TSP(CITIES)
     
-    initial_solution = tsp_problem.generate_random_tour()
+    initial_solution = tsp_problem.generate_random_solution()
+
+    knapsack_problem = Knapsack(capacity=15)
+    knapsack_problem.items = { "1": (2, 10), "2": (3, 5), "3": (5, 15), "4": (7, 7), 
+                              "5": (1, 6), "6": (4, 18), "7": (1, 3), "8": (3, 12), "9": (2, 8), "10": (6, 20) }
     
+    initial_knapsack_solution = knapsack_problem.generate_random_solution()
+
     # --- SA Parameters ---
     INITIAL_TEMPERATURE = 100000.0
     COOLING_RATE = 0.03
@@ -61,28 +68,28 @@ if __name__ == "__main__":
     MAX_ITERATIONS = 100000
 
     sa_solver = SimulatedAnnealing(
-        problem=tsp_problem,
-        initial_solution=initial_solution,
+        problem=knapsack_problem,
+        initial_solution=initial_knapsack_solution,
         initial_temperature=INITIAL_TEMPERATURE,
         cooling_rate=COOLING_RATE,
         min_temperature=MINIMUM_TEMPERATURE
     )
 
     # --- Run Solver & Get Results ---
-    print("Starting Simulated Annealing for TSP...")
-    (best_tour, best_distance, history), elapsed = time_function(
+    print("Starting Simulated Annealing for Knapsack...")
+    (best_solution, best_value, history), elapsed = time_function(
         sa_solver.solve, max_iterations=MAX_ITERATIONS
     )
     print(f"Elapsed time: {elapsed:.4f} seconds")
-    initial_distance = history['cost'][0]
+    initial_value = history['cost'][0]
 
     # --- Print & Visualize ---
     print("\n--- Results ---")
-    print(f"Initial random tour distance: {initial_distance:.2f}")
-    print(f"Final optimized tour distance: {best_distance:.2f}")
-    print(f"Improvement: {((initial_distance - best_distance) / initial_distance) * 100:.2f}%\n")
+    print(f"Initial random solution weight: {initial_value:.2f}")
+    print(f"Final optimized solution weight: {best_value:.2f}")
+    print(f"Final solution values: {knapsack_problem.value:.2f}")
+    print(f"Improvement: {((initial_value - best_value) / initial_value) * 100:.2f}%\n") # assuming minimization
 
-    plot_tours(CITIES, initial_solution, best_tour, initial_distance, best_distance)
     plot_convergence(history)
 
     # Notes:

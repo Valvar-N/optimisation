@@ -13,7 +13,7 @@ class TSP:
         self.cities = cities
         self.num_cities = len(cities)
 
-    def calculate_tour_distance(self, tour):
+    def calculate_cost(self, tour):
         """
         Calculates the total distance of a given tour.
         :param tour: A list of city indices representing the tour.
@@ -31,7 +31,7 @@ class TSP:
             total_distance += distance
         return total_distance
 
-    def generate_random_tour(self):
+    def generate_random_solution(self):
         """
         Generates a random tour by shuffling the city indices.
         :return: A list of shuffled city indices.
@@ -40,7 +40,7 @@ class TSP:
         random.shuffle(tour)
         return tour
     
-    def get_neighbor_tour(self, tour):
+    def get_neighbor(self, tour):
         """
         Creates a neighbor tour by swapping two random cities.
         This is a common "move operator" for TSP.

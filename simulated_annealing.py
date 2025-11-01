@@ -24,8 +24,8 @@ class SimulatedAnnealing:
     def solve(self, max_iterations=1000):
         # STEP 1: Initialize
         temperature = self.initial_temperature
-        self.current_solution = self.problem.generate_random_tour()
-        current_cost = self.problem.calculate_tour_distance(self.current_solution)
+        self.current_solution = self.problem.generate_random_solution()
+        current_cost = self.problem.calculate_cost(self.current_solution)
         self.best_solution = self.current_solution
         best_cost = current_cost
         iteration = 0
@@ -34,18 +34,20 @@ class SimulatedAnnealing:
         
         while temperature > self.min_temperature or iteration < max_iterations:
             # STEP 2: Select candidate solution
-            candidate_solution = self.problem.get_neighbor_tour(self.current_solution)
-            candidate_cost = self.problem.calculate_tour_distance(candidate_solution)
+            candidate_solution = self.problem.get_neighbor(self.current_solution)
+            candidate_cost = self.problem.calculate_cost(candidate_solution)
             
-            # Decide whether to accept the candidate solution
+            # Decide whether to accept the candidate solution //
+            
+            # CAREFUL: For minimization problems, condition checks are inverted !!!!
             prob = self.acceptance_probability(current_cost, candidate_cost, temperature)
-            if best_cost <= candidate_cost and candidate_cost <= current_cost:
+            if best_cost >= candidate_cost and candidate_cost >= current_cost:
                 self.current_solution = candidate_solution
                 current_cost = candidate_cost
-            elif candidate_cost < best_cost:
+            elif candidate_cost > best_cost:
                 self.best_solution = self.current_solution = candidate_solution
                 best_cost = current_cost = candidate_cost
-            elif current_cost < candidate_cost:
+            elif current_cost > candidate_cost:
                 if random.random() <= prob:
                     self.current_solution = candidate_solution
                     current_cost = candidate_cost
