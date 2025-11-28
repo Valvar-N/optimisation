@@ -1,5 +1,6 @@
 import math
 import random
+import numpy as np
 
 class TSP:
     """
@@ -7,8 +8,8 @@ class TSP:
     """
     def __init__(self, cities):
         """
-        Initializes the TSP problem with a list of cities.
-        :param cities: Either a list of (x, y) coordinates or a distance matrix.
+        Initializes the TSP problem with a list of cities or a distance matrix.
+        :param cities: Either a list/np.ndarray of (x, y) coordinates or a distance matrix.
         """
         self.cities = cities
         self.num_cities = len(cities)
@@ -16,30 +17,56 @@ class TSP:
     def calculate_cost(self, tour):
         """
         Calculates the total distance of a given tour (closed loop).
-        Supports either coordinate lists or distance matrix representations.
-        :param tour: A list of city indices representing the tour.
-        :return: The total distance of the tour.
+        - Validates the tour is a sequence of city indices of correct length.
+        - Detects whether self.cities is a coordinate list/array or a distance matrix.
+        - Sums distances for consecutive edges and closing edge.
+        :param tour: list/tuple of city indices (0-based)
+        :return: float total tour distance
         """
-        if not tour:
-            return 0.0
+        # Basic validation
+        if not isinstance(tour, (list, tuple)):
+            raise TypeError("tour must be a list or tuple of city indices")
+        if len(tour) != self.num_cities:
+            raise ValueError(f"tour must contain exactly {self.num_cities} city indices")
 
-        total_distance = 0.0
-        # Detect coordinate list (each city is a length-2 tuple/list of numbers)
+        # Detect representation: coords (list/np.ndarray of (x,y)) or distance matrix
         first = self.cities[0]
-        is_coords = (isinstance(first, (list, tuple)) and len(first) == 2
-                     and isinstance(first[0], (int, float)))
+        is_coords = isinstance(first, (list, tuple, np.ndarray)) and len(first) == 2 \
+                    and isinstance(first[0], (int, float, np.floating, np.integer))
+
+        total = 0.0
         n = len(tour)
         for k in range(n):
             i = tour[k]
-            j = tour[(k + 1) % n]  # next city, wrap around to start
-            if is_coords:
-                xi, yi = self.cities[i]
-                xj, yj = self.cities[j]
-                total_distance += math.hypot(xi - xj, yi - yj)
-            else:
-                # assume a distance/cost matrix
-                total_distance += self.cities[i][j]
-        return total_distance
+            j = tour[(k + 1) % n]  # next city, wrap around
+            total += self.cost_of(i, j, coords=is_coords)
+        return total
+
+    def cost_of(self, city1_index, city2_index, coords=None):
+        """
+        Return distance between two cities (by index).
+        If coords is None, auto-detect from self.cities.
+        Handles both numpy arrays and Python lists for coords or distance matrix.
+        """
+        if coords is None:
+            first = self.cities[0]
+            coords = isinstance(first, (list, tuple, np.ndarray)) and len(first) == 2 \
+                     and isinstance(first[0], (int, float, np.floating, np.integer))
+
+        if coords:
+            x1, y1 = self.cities[city1_index]
+            x2, y2 = self.cities[city2_index]
+            return math.hypot(x2 - x1, y2 - y1)
+        else:
+            # distance matrix access: try numpy-style first, fall back to nested lists
+            try:
+                # works for numpy arrays and for lists of lists if using [i][j]
+                return float(self.cities[city1_index, city2_index])
+            except Exception:
+                try:
+                    return float(self.cities[city1_index][city2_index])
+                except Exception as exc:
+                    raise IndexError(f"unable to index distance between {city1_index} and {city2_index}: {exc}")
 
     def generate_random_solution(self):
         """
@@ -49,10 +76,10 @@ class TSP:
         tour = list(range(self.num_cities))
         random.shuffle(tour)
         return tour
-    
+
     def get_neighbor(self, tour):
         """
-        Single neighbor generator used by Simulated Annealing.
+        Single neighbor generator used by search routines.
         Randomly choose insertion or exchange move.
         """
         if self.num_cities < 2:
@@ -64,37 +91,28 @@ class TSP:
 
     def get_neighbor_insertion(self, tour):
         """
-        Creates a neighbor tour by removing a city and inserting it at a different position.
-        :param tour: The current tour.
-        :return: A new tour with one city moved to a different position.
+        Remove one city and insert it at a different position.
         """
-        if self.num_cities < 2:
-            return tour[:]
-        neighbor_tour = tour[:]
-        # Select a city to move
-        city_index = random.randint(0, self.num_cities - 1)
-        city = neighbor_tour.pop(city_index)
-        # Select a new position to insert the city (0..num_cities-1 inclusive)
-        new_position = random.randint(0, self.num_cities - 1)
-        neighbor_tour.insert(new_position, city)
-        return neighbor_tour
-        
+        if not isinstance(tour, (list, tuple)):
+            tour = self.generate_random_solution()
+        if len(tour) < 2:
+            return list(tour)
+        neighbor = list(tour)
+        i = random.randrange(len(neighbor))
+        city = neighbor.pop(i)
+        j = random.randrange(len(neighbor) + 1)  # allow insertion at end
+        neighbor.insert(j, city)
+        return neighbor
+
     def get_neighbor_exchange(self, tour):
         """
-        Creates a neighbor tour by swapping two random cities.
-        This is a common "move operator" for TSP.
-        :param tour: The current tour.
-        :return: A new tour with two cities swapped.
+        Swap two cities in the tour.
         """
-        if self.num_cities < 2:
-            return tour[:]
-        neighbor_tour = tour[:]
-        # Select two random indices to swap (exchange)
-        i, j = random.sample(range(self.num_cities), 2)
-        # Swap the cities at these indices
-        neighbor_tour[i], neighbor_tour[j] = neighbor_tour[j], neighbor_tour[i]
-        return neighbor_tour
-
-    def cost_of(self, cost_list, city1_index, city2_index):
-        """Returns the cost between two cities given their indices (matrix access)."""
-        return cost_list[city1_index][city2_index]
+        if not isinstance(tour, (list, tuple)):
+            tour = self.generate_random_solution()
+        if len(tour) < 2:
+            return list(tour)
+        neighbor = list(tour)
+        i, j = random.sample(range(len(neighbor)), 2)
+        neighbor[i], neighbor[j] = neighbor[j], neighbor[i]
+        return neighbor

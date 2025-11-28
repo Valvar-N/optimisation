@@ -5,6 +5,7 @@ from tabu_search import TabuSearch
 import random
 import math 
 import logging
+import numpy as np
 
 def plot_tours(cities, initial_tour, best_tour, initial_dist, best_dist):
     plt.figure(figsize=(12, 6))
@@ -49,6 +50,42 @@ def log(msg):
     print(msg)
     logging.info(msg)
 
+
+def generate_tsp_coordinates(n_cities, seed=None, max_coord=100):
+    """
+    Generate a TSP instance using random 2D coordinates.
+
+    Parameters
+    ----------
+    n_cities : int
+        Number of cities (e.g., 10, 50, 100)
+    seed : int or None
+        Random seed for reproducibility
+    max_coord : int
+        Coordinates are in range [0, max_coord]
+
+    Returns
+    -------
+    coords : np.ndarray (n x 2)
+        Array of (x, y) coordinates for each city
+    dist_matrix : np.ndarray (n x n)
+        Symmetric distance matrix (Euclidean)
+    """
+    if seed is not None:
+        np.random.seed(seed)
+
+    # Generate coordinates
+    coords = np.random.uniform(0, max_coord, (n_cities, 2))
+
+    # Compute symmetric Euclidean distance matrix
+    dist_matrix = np.zeros((n_cities, n_cities))
+    for i in range(n_cities):
+        for j in range(n_cities):
+            if i != j:
+                dist_matrix[i][j] = np.linalg.norm(coords[i] - coords[j])
+
+    return coords, dist_matrix
+
 if __name__ == "__main__":
     
     # configure logging to append to run_log.txt
@@ -56,28 +93,12 @@ if __name__ == "__main__":
                         level=logging.INFO)
     logging.info("=== New run ===")
     # --- Problem Definition ---
-    # A set of 15 cities for the TSP
-    
-    cost_of_cities = [
-    # 1   2   3   4   5   6   7   8   9   10  11  12  13  14  15
-    [  0, 48, 30, 63, 17, 15, 87, 63, 30, 33, 68, 26, 38, 65, 65],  # 1
-    [ 48,  0, 45, 35, 77, 21, 96, 64, 24, 17, 39, 30, 32, 76, 31],  # 2
-    [ 30, 45,  0, 91, 65, 31, 84, 79, 34, 30, 72, 74, 97, 59, 48],  # 3
-    [ 63, 35, 91,  0, 66, 29, 53, 87, 71, 55, 99, 48, 37, 83, 30],  # 4
-    [ 17, 77, 65, 66,  0, 40, 15, 27, 92, 35, 45, 47, 15, 72, 95],  # 5
-    [ 15, 21, 31, 29, 40,  0, 88, 59, 26, 89, 60, 24, 63, 71, 80],  # 6
-    [ 87, 96, 84, 53, 15, 88,  0, 31, 39, 45, 89, 55, 96, 41, 19],  # 7
-    [ 63, 64, 79, 87, 27, 59, 31,  0, 49, 46, 94, 66, 72, 75,  0],  # 8
-    [ 30, 24, 34, 71, 92, 26, 39, 49,  0, 48, 28, 42, 95, 16, 92],  # 9
-    [ 33, 17, 30, 55, 35, 89, 45, 46, 48,  0, 66, 32, 31, 54, 97],  # 10
-    [ 68, 39, 72, 99, 45, 60, 89, 94, 28, 66,  0, 90, 47, 23, 41],  # 11
-    [ 26, 30, 74, 48, 47, 24, 55, 66, 42, 32, 90,  0, 23, 89,100],  # 12
-    [ 38, 32, 97, 37, 15, 63, 96, 72, 95, 31, 47, 23,  0, 39, 30],  # 13
-    [ 65, 76, 59, 83, 72, 71, 41, 75, 16, 54, 23, 89, 39,  0, 35],  # 14
-    [ 65, 31, 48, 30, 95, 80, 19,  0, 92, 97, 41,100, 30, 35,  0],  # 15
-    ]
+    cities_coord, cities_dist = generate_tsp_coordinates(100, seed=42)
+    log("Generated TSP instance with 10 cities (coordinates):")
+    for idx, (x, y) in enumerate(cities_coord):
+        log(f"City {idx+1}: ({x:.2f}, {y:.2f})")
 
-    tsp_problem = TSP(cost_of_cities)
+    tsp_problem = TSP(cities_coord)
     tabu_solver = TabuSearch(problem=tsp_problem, tabu_size=4, max_iterations=100)
     probability = random.random()
     initial_solution = tsp_problem.generate_random_solution()
@@ -104,19 +125,12 @@ if __name__ == "__main__":
 
     # Prepare coordinates for plotting:
     # if cost_of_cities are coordinates use them, otherwise generate circle layout
-    first = cost_of_cities[0]
+    first = cities_coord[0]
     is_coords = (isinstance(first, (list, tuple)) and len(first) == 2
                  and isinstance(first[0], (int, float)))
-    if is_coords:
-        coords = cost_of_cities
-    else:
-        n = len(cost_of_cities)
-        radius = 100.0
-        coords = [(radius * math.cos(2 * math.pi * i / n),
-                   radius * math.sin(2 * math.pi * i / n)) for i in range(n)]
 
     plot_tours(
-        cities=coords,
+        cities=cities_coord,
         initial_tour=initial_solution,
         best_tour=best_solution,
         initial_dist=initial_value,
