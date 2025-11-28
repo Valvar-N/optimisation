@@ -4,6 +4,7 @@ import time
 from tabu_search import TabuSearch
 import random
 import math 
+import logging
 
 def plot_tours(cities, initial_tour, best_tour, initial_dist, best_dist):
     plt.figure(figsize=(12, 6))
@@ -44,7 +45,16 @@ def time_function(func, *args, **kwargs):
     return result, end - start
 
 
+def log(msg):
+    print(msg)
+    logging.info(msg)
+
 if __name__ == "__main__":
+    
+    # configure logging to append to run_log.txt
+    logging.basicConfig(filename='run_log.txt', filemode='a',
+                        level=logging.INFO)
+    logging.info("=== New run ===")
     # --- Problem Definition ---
     # A set of 15 cities for the TSP
     
@@ -68,7 +78,7 @@ if __name__ == "__main__":
     ]
 
     tsp_problem = TSP(cost_of_cities)
-    tabu_solver = TabuSearch(problem=tsp_problem, tabu_size=2, max_iterations=500)
+    tabu_solver = TabuSearch(problem=tsp_problem, tabu_size=4, max_iterations=100)
     probability = random.random()
     initial_solution = tsp_problem.generate_random_solution()
     
@@ -77,20 +87,20 @@ if __name__ == "__main__":
     (best_solution, best_value, history), elapsed = time_function(
         tabu_solver.search, probability=probability, initial_solution=initial_solution)
     
-    print(f"Elapsed time: {elapsed:.4f} seconds")
+    log(f"Elapsed time: {elapsed:.4f} seconds")
     initial_value = tsp_problem.calculate_cost(initial_solution)
 
     # --- Print & Visualize ---
-    print("\n--- Results ---")
-    print(f"Initial random solution cost: {initial_value:.2f}")
-    print(f"Final optimized solution cost: {best_value:.2f}")
-    print(f"Improvement: {((initial_value - best_value) / initial_value) * 100:.2f}%\n") # minimization
+    log(f"\n--- Results for {tabu_solver.max_iterations} iterations, tabu list of {tabu_solver.tabu_size}---")
+    log(f"Initial random solution cost: {initial_value:.2f}")
+    log(f"Final optimized solution cost: {best_value:.2f}")
+    log(f"Improvement: {((initial_value - best_value) / initial_value) * 100:.2f}%\n") # minimization
     
     # Print best tour as position -> city (1-based city IDs)
-    print("Best tour (position -> city):")
+    log("Best tour (position -> city):")
     for pos, city in enumerate(best_solution):
-        print(f"Position {pos+1}: City {city+1}", end=" ")
-    print("\n")
+        log(f"Position {pos+1}: City {city+1}")
+    log("")
 
     # Prepare coordinates for plotting:
     # if cost_of_cities are coordinates use them, otherwise generate circle layout
@@ -114,3 +124,4 @@ if __name__ == "__main__":
     )
     
     plot_convergence(history)
+    logging.info("Convergence points: %s", history.get('cost', []))
