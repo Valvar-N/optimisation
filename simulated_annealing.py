@@ -1,6 +1,6 @@
 import math
 import random
-import tsp
+import TSP_tabu_search.tsp as tsp
 
 class SimulatedAnnealing:
     def __init__(self, problem, initial_solution, initial_temperature, cooling_rate, min_temperature=1e-3):
